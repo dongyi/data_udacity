@@ -1,0 +1,819 @@
+---
+title: "Red Wine Quality "
+author: "Dong Yi"
+date: "2017-07-08"
+output:
+  html_document:
+    keep_md: no
+    toc: yes
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(psych)
+library(dplyr)
+library(knitr)
+library(memisc)
+
+# 全局配置
+set.seed(1984) 
+
+opts_chunk$set(fig.width=6, fig.height=6, fig.align='center', 
+               warning=FALSE, message=FALSE, echo=FALSE,
+               cache=TRUE, echo=FALSE)
+```
+
+# 数据集说明
+
+这个整⻬的数据集包含1,599 种红酒，以及 11 个关于酒的化学成分的变量。
+⾄少 3 名葡萄酒专家对每种酒的质量进⾏了评分，分数在 0（⾮常差）和 10（⾮常好）之间。
+
+
+
+```{r Load_the_Data1}
+# 载入数据文件
+
+data = read.table(file = 'wineQualityReds.csv', header=TRUE, sep=',')
+str(data)
+names(data)[1] <- 'id'
+```
+
+总体情况:
+
+```{r Load_the_Data2}
+summary(data)
+```
+
+该数据集有1599个条目, 每个条目包含13个变量, 给每个条目加了一个id字段.
+所有字段都是数字类型的
+
+首先观察一下quality值的分布
+
+
+```{r Univariate_Plots1}
+# 定义一个函数来画单个字段的直方图
+
+get_basic_histogram <- 
+  function(column, data, binwidth = diff(range(data[column]))/30) 
+  {
+    return(ggplot(
+            aes_string(x = column), data = data) + 
+            geom_histogram(binwidth = binwidth)
+           )
+  }
+
+get_basic_histogram("quality", data)
+data$quality <- factor(data$quality)
+```
+
+quality只有6个取值: 3,4,5,6,7,8
+我们可以把他转变成factor类型
+
+
+查看其它变量的分布
+```{r Univariate_Plots2}
+get_basic_histogram("fixed.acidity", data)
+get_basic_histogram("volatile.acidity", data, 0.1)
+get_basic_histogram("citric.acid", data)
+get_basic_histogram("residual.sugar", data)
+get_basic_histogram("chlorides", data)
+get_basic_histogram("free.sulfur.dioxide", data)
+get_basic_histogram("total.sulfur.dioxide", data)
+get_basic_histogram("density", data)
+get_basic_histogram("pH", data)
+get_basic_histogram("sulphates", data)
+get_basic_histogram("alcohol", data)
+
+```
+
+多数直方图都是右偏态分布
+
+Volatile acidity多数集中在0.2到0.7之间, 使用cut来查看一下可以发现集中在其中4个区间里
+
+```{r Univariate_Plots3, fig.width=8}
+qplot(cut(data$volatile.acidity, breaks = seq(0.0, 1.6, 0.1)))
+```
+
+
+再来查看一下citric acid值, 似乎有较为明显的outlier, 我们使用箱型图来查看一下
+
+```{r Univariate_Plots4}
+ggplot(aes(x = 'Citric acid', y = citric.acid), data = data) + geom_boxplot() +
+  scale_y_continuous(breaks = seq(0, 1, 0.2))
+```
+
+可以发现1.0是个outlier, 其他值分布在0.1 到0.8 之间
+
+Free sulfur dioxide 是个明显的右偏分布, 我们使用对数坐标和根号坐标修改一下
+
+
+```{r Univariate_Plots5}
+get_basic_histogram("free.sulfur.dioxide", data, 0.2) +
+  scale_x_log10(breaks = seq(1, 75, 5))
+
+get_basic_histogram("free.sulfur.dioxide", data, 0.2) +
+  scale_x_sqrt(breaks = seq(1, 75, 5))
+```
+
+可以看出在对数坐标下呈现正态分布, 并且有6, 11, 15, 18 这几个常见的值
+
+  
+我们现在查看一下free sulfur dioxide在total sulfur dioxide的占比情况, 定义一个新的变量
+
+```{r Univariate_Plots8}
+data$percent.free.sulfur.dioxide = 
+  data$free.sulfur.dioxide / data$total.sulfur.dioxide
+
+ggplot(aes(x = percent.free.sulfur.dioxide), data = data) +
+  geom_histogram(binwidth = 0.1)
+```
+
+可以看出free sulfur dioxide的百分比呈现正态分布, 均值在0.4
+
+
+再观察一下alcohol值
+
+
+```{r Univariate_Plots9}
+qplot(cut(data$alcohol, breaks = seq(7.0, 15.0, 0.5)))
+```
+
+可以发现多数值分布在9.0以上部分均匀递减
+
+
+再观察一下residual.sugar值的分布
+
+```{r Univariate_Plots9}
+#qplot(cut(data$residual.sugar, breaks = seq(7.0, 15.0, 0.5)))
+qplot(cut(data$residual.sugar, breaks = seq(0.5, 15.0, 1)))
+
+ggplot(aes(x = 'residual.sugar', y = residual.sugar), data = data) + geom_boxplot() +
+  scale_y_continuous(breaks = seq(0.5, 15.0, 2))
+```
+可以看出多数的residual.sugar集中在2.5左右, 较高的值呈现长尾分布
+
+
+再来观察一下density值
+
+```{r Univariate_Plots9}
+qplot(cut(data$density, breaks = seq(0.98, 1.008, 0.002)))
+
+
+```
+
+可以看出基本呈现正态分布, 从0.99到1.004之间, 均值和中位数大约是0.997左右
+
+
+
+
+现在再将quality值和其他变量结合起来综合研究. 我们将quality的值分为三组:
+差: quality <= 4
+中: quality in (5, 6)
+优: quality >= 7
+
+Now lets compare the different distributions for each level of quality. For 
+this, we considere 3 groups of qualities: bad (4 or lower), regular (5 or 6) 
+and good (7 or higher). We create a new variable (class) indicating the group.
+
+```{r fig.width=10, fig.height=10, Univariate_Plots10}
+# Function that creates a basic density plot for each quality class
+getClass <- function(myQualities) {
+  myQualities <- factor(myQualities)
+  myClasses <- ifelse(as.numeric(levels(myQualities))[myQualities] >= 7, "good", 
+                     ifelse(as.numeric(levels(myQualities))[myQualities] >= 5, 
+                            "regular", "bad"))
+  myClasses <- factor(myClasses)
+  # Set the correct order: bad < regular < good
+  myClasses <- factor(myClasses, levels(myClasses)[c(1, 3, 2)])
+  return(myClasses)
+}
+
+data$class <- getClass(data$quality)
+
+get_basic_density_plot <- function(column) {
+  return(
+    ggplot(aes_string(x = column), data = data) +
+      geom_density(alpha = 3/4, aes(fill = class))
+  )
+}
+
+p1 <- get_basic_density_plot('fixed.acidity')
+p2 <- get_basic_density_plot('volatile.acidity')
+p3 <- get_basic_density_plot('citric.acid')
+p4 <- get_basic_density_plot('residual.sugar')
+p5 <- get_basic_density_plot('chlorides')
+p6 <- get_basic_density_plot('free.sulfur.dioxide')
+p7 <- get_basic_density_plot('pfree.sulfur.dioxide')
+p9 <- get_basic_density_plot('total.sulfur.dioxide')
+p10 <- get_basic_density_plot('density')
+p11 <- get_basic_density_plot('pH')
+p12 <- get_basic_density_plot('sulphates')
+p13 <- get_basic_density_plot('alcohol')
+
+grid.arrange(p1, p2, p3, p4, p5, p6, p7, p9, p10, p11, p12, p13, ncol = 3)
+```
+
+It seems that bad wines have a bigger volatile acidity, and they don't have 
+high citric acid values. Also they tend to have lower sulphate values. Good 
+wines tend to have more alcohol.  
+
+# Univariate Analysis
+
+### What is the structure of your dataset?
+
+The dataset is a tidy one and it has 1599 observations with 13 variables for 
+each one. All of the observations are numerical. The first one is an index. The 
+"quality" variable has only 6 discrete values: 4, 5, 6, 7, 8.
+
+### What is/are the main feature(s) of interest in your dataset?
+
+Since "quality" is the outcome, the variables "volatile.acidity", "citric.acid", 
+"sulphates" and "alcohol" seem to be interesting. The distributions for these 
+variables tend to be different across levels of "quality".
+
+### What other features in the dataset do you think will help support your investigation into your feature(s) of interest?
+
+Maybe the free sulfur dioxide variable could contribute to predict the outcome. 
+We will further investigate this variable or others derived from it. 
+
+### Did you create any new variables from existing variables in the dataset?
+
+When using the values of the variable "alcohol", they are rounded to integer 
+values. The outcome "quality" was converted to factor type with 6 levels.  
+
+We also created three new variables: 
+
+- nonfree.sulfur.dioxide: the result of subtract free.sulfur.dioxide from 
+total.sulfur.dioxide
+- pfree.sulfur.dioxide: percentage of free sulfur dioxide
+- class: to group wines in three classes -> bad (qualities 3 and 4), regular (qualities 5 and 6) and good (qualities 7 and 8).
+
+### Of the features you investigated, were there any unusual distributions? Did you perform any operations on the data to tidy, adjust, or change the form of the data? If so, why did you do this?
+
+Most of the features have outliers that are far beyond the 3rd quartile in their 
+distributions. Maybe this is also one of the reasons why most of them are righ 
+skewed. 
+
+Volatile acidity seems to have a core of common values between 0.3 and 0.7. Half 
+of the citric acid values are between 0.09 and 0.42. It has an outlier value 
+of 1, probably a measurement error: excluding it, the biggest value is 0.79. 
+There are very few observations with a "quality" value different of 5 or 6. 
+
+For free sulfur dioxide we detected a very common value between 5 and 6. A 
+logarithmic transformation gave us a distribution more similar to a normal one. 
+Also we tried to perform a sqrt transformation and we detected common values 
+around 6, 11 and 16. The median values for regular wines (quality 5 or 6) are 
+higher than the median values for other qualities (bad and good, which have 
+similar free sulfur dioxide median values). 
+
+Regarding the new variables, bound sulfur dioxide ("nonfree.sulfur.dioxide") 
+tends to have bigger values than free sulfur dioxide. The percentage of free 
+sulfur dioxide ("pfree.sulfur.dioxide") has a distribution almost normal, with 
+mean around 0.4.
+
+Most of the observations have an alcohol value between 9 and 12, with a median 
+of 10. It is strange that wines with a quality of 5 tend to have less alcohol.
+
+As explained above, values of "alcohol" variable are rounded to integer and the 
+outcome ("quality") was converted to factor type. There are not other remarkable 
+changes in the data. 
+
+
+# Bivariate Plots Section
+
+We check the Pearson's correlation between all pairs of variables. We can see 
+it in a graphical way using the *psych* package:
+
+```{r fig.width=10, fig.height=10, Bivariate_Plots1}
+pairs.panels(data, pch=".")
+```
+
+As suspected, our initial guess about the main features is consistent with the 
+correlation values we obtained before. The features "volatile.acidity", 
+"citric.acid", "sulphates" and "alcohol" shows the bigger correlation values, 
+with an absolute value ranging from 0.23 to 0.48. In the case of 
+"volatile.acidity", it is a negative correlation.  
+
+Lets examine these variables with some boxplots by quality classes:
+
+```{r Bivariate_Plots2}
+ggplot(aes(x = class, y = volatile.acidity), data = data) +
+  geom_boxplot()
+
+ggplot(aes(x = class, y = citric.acid), data = data) +
+  geom_boxplot()
+
+# Removing high outliers
+ggplot(aes(x = class, y = sulphates), 
+       data = subset(data, sulphates < quantile(data$sulphates, 0.9))) +
+  geom_boxplot()
+
+ggplot(aes(x = class, y = round(alcohol)), data = data) +
+  geom_boxplot()
+```
+
+Box plots corroborate our previous findings. We see a clear positive tendency 
+in all of them (except in volatile.acidity, where it is negative). In the case 
+of alcohol we can not see a difference between bad and regular wines. The 
+values of alcohol for regular wines seems to be very spread. Lets examine it 
+using directly the quality values (5 and 6):
+
+```{r Bivariate_Plots3}
+ggplot(aes(x = quality, y = round(alcohol)), data = subset(data, class == 'regular')) +
+  geom_boxplot()
+```
+
+There is a jump for alcohol variable between qualities 5 and 6. Maybe this is 
+a separation between potentially bad wines and potentially good wines.
+
+# Bivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the investigation. How did the feature(s) of interest vary with other features in the dataset?
+
+Based on our previous analysis, we have been checking some correlations. Box 
+plots diagrams for each quality level have shown a tendency for these variables: 
+"volatile.acidity", "citric.acid", "sulphates" and "alcohol". All the cases 
+except "volatile.acidity" are positive correlations. This is normal, because 
+"volatile.acidity" is the amount of acetic acid in wine, which at too high of 
+levels can lead to an unpleasant, vinegar taste. For values of 5 in the 
+"quality" variable the values for "alcohol" are very spread, although the 
+tendency is that good wines (quality 7 or 8) have the highest median level of 
+alcohol.
+
+Furthermore, correlation matrices have given us a global overview of all 
+pairwise relations in a numerical and graphical ways. 
+
+### Did you observe any interesting relationships between the other features (not the main feature(s) of interest)?
+
+According to the correlation matrix, there are some other features with high 
+correlation between them. These correlations are even higher than those 
+commented above (regarding the "quality"). Variable "fixed.acidity" is 
+correlated with "density", "citric.acid" and "pH". Of course the correlation 
+is negative for "pH" because a low pH indicates a very acidic environment. This 
+is the reason why "citric.acid" and "pH" are also negatively correlated. 
+
+As expected, variable "citric.acid" is negatively correlated with 
+"volatile.acidity" too. This variable is more or less the opposite to 
+"fixed.acidity". 
+
+The negative effect of alcohol for the "density" variable is stronger than the 
+positive effect of "residual.sugar".
+
+Finally, as expected, the free sulfur dioxide is correlated with the total 
+sulfur dioxide. And of course the new variables "nonfree.sulfur.dioxide" and 
+"pfree.sulfur.dioxide" are related with the previous ones. 
+
+### What was the strongest relationship you found?
+
+The strongest relationship, ignoring that between "total.sulfur.dioxide" and 
+"nonfree.sulfur.dioxide", is the negative correlation (-0.68) between 
+"fixed.acidity" and "pH". As commented before, this is totally normal.
+
+# Multivariate Plots Section
+
+Lets examine and compare the combinations of our main 4 features taking into 
+account the quality of wine as color. 
+
+```{r fig.width=8, fig.height=8, Multivariate_Plots1}
+p1 <- ggplot(aes(x = volatile.acidity, y = citric.acid),
+       data = data) +
+  geom_point(aes(color = class))
+
+p3 <- ggplot(aes(x = volatile.acidity, y = sulphates),
+       data = data) +
+  geom_point(aes(color = class))
+
+p5 <- ggplot(aes(x = volatile.acidity, y = round(alcohol)),
+       data = data) +
+  geom_jitter(aes(color = class), position = position_jitter(h = 0.3, w = 0))
+
+p2 <- ggplot(aes(x = citric.acid, y = sulphates),
+       data = data) +
+  geom_point(aes(color = class))
+
+p4 <- ggplot(aes(x = citric.acid, y = round(alcohol)),
+       data = data) +
+  geom_jitter(aes(color = class), position = position_jitter(h = 0.3, w = 0))
+
+p6 <- ggplot(aes(x = sulphates, y = round(alcohol)),
+       data = data) +
+  geom_jitter(aes(color = class), position = position_jitter(h = 0.3, w = 0))
+
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
+```
+
+For prediction purposes, we have two main problems: 1) unbalanced observation 
+types (too many regular wines) and 2) the regular wines are very spread across 
+feature values, so they are mixed with bad and good classes. Maybe what we 
+should try is to predict good (or bad) wines, not to try to classify into the 
+three classes. Lets check only bad wines against good wines. In this case, we 
+also add some density 2D maps in order to see where are located the clusters or
+groups for each combination of features:
+
+```{r echo=FALSE, fig.width=8, fig.height=8, Multivariate_Plots2}
+
+data.good.bad <- subset(data, class %in% c('good', 'bad'))
+
+p1 <- ggplot(aes(x = volatile.acidity, y = citric.acid),
+       data = data.good.bad) +
+  geom_point(aes(color = class)) +
+  stat_density2d(aes(color = class))
+
+p3 <- ggplot(aes(x = volatile.acidity, y = sulphates),
+       data = data.good.bad) +
+  geom_point(aes(color = class)) +
+  stat_density2d(aes(color = class))
+
+p5 <- ggplot(aes(x = volatile.acidity, y = round(alcohol)),
+       data = data.good.bad) +
+  geom_jitter(aes(color = class), position = position_jitter(h = 0.3, w = 0)) +
+  stat_density2d(aes(color = class))
+
+p2 <- ggplot(aes(x = citric.acid, y = sulphates),
+       data = data.good.bad) +
+  geom_point(aes(color = class)) +
+  stat_density2d(aes(color = class))
+
+p4 <- ggplot(aes(x = citric.acid, y = round(alcohol)),
+       data = data.good.bad) +
+  geom_jitter(aes(color = class), position = position_jitter(h = 0.3, w = 0)) +
+  stat_density2d(aes(color = class))
+
+p6 <- ggplot(aes(x = sulphates, y = round(alcohol)),
+       data = data.good.bad) +
+  geom_jitter(aes(color = class), position = position_jitter(h = 0.3, w = 0)) +
+  stat_density2d(aes(color = class))
+
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
+```
+
+If we select only "bad" and "good" wines we can appreciate that most of good 
+wines have medium values of citric acid and low values of volatile acidity. On 
+the other hand, bad wines usually have medium-high volatile acidity and low 
+citric acid. This is similar for combinations of "volatile.acidity" with 
+"sulphates" or "alcohol": good wines are upper left and bad wines are lower 
+right. This tendency is similar in "alcohol" vs "citric.acid" or "sulphates", 
+although in this case good wines are on the upper right and bad wines on the 
+lower left. For the combination "citric.acid" vs "sulphates", we can appreciate 
+more or less an horizontal line separating good and bad wines:
+
+```{r Multivariate_Plots3}
+ggplot(aes(x = volatile.acidity, y = sulphates),
+       data = data.good.bad) +
+  geom_point(aes(color = class)) +
+  geom_hline(yintercept = 0.60, alpha = 1, linetype = 2) +
+  coord_cartesian(xlim = c(0, 1.2), ylim = c(0, 1.5))
+```
+
+And finally, lets create 4 simple linear models using our four main features. 
+The first model includes only "alcohol" as predictor. Then next model add 
+"volatile.acidity". Model 3 adds also "sulphates", and the last model adds 
+"citric.acid". We have been testing different combinations (data not shown) to 
+find this one:
+
+```{r Multivariate_Plots4}
+# We need again the quality as a number
+data$quality_num <- as.numeric(levels(data$quality))[data$quality]
+
+# Create incremental models and compare them
+m1 <- lm(I(quality_num ~ alcohol), data = data)
+m2 <- update(m1, ~ . + volatile.acidity)
+m3 <- update(m2, ~ . + sulphates)
+m4 <- update(m3, ~ . + citric.acid)
+mtable(m1, m2, m3, m4)
+```
+
+We have seen that "alcohol" is the most important feature, followed by 
+"volatile.acidity". The "sulphates" feature adds some small improvement, but 
+"citric.acid" do not improve the model (something we already suspected thanks 
+to the scatter plots).
+
+Although models are not very good (R<sup>2</sup> are very low, 0.336 in the 
+best case, model 3), predictions are reasonable. If we use rounded predicted 
+quality values then we predict correctly 58% of the qualities. But if we use 
+quality classes (bad, regular and good), then we increase the success rate 
+to 83%:
+
+```{r Multivariate_Plots5}
+# Chek the predictions of our best model
+modelEstimate = predict(m3, newdata = data,
+                        interval="prediction", level = .95)
+
+# Check the sucess rate by quality and by quality classes
+predicted.quality <- round(as.data.frame(modelEstimate)$fit, 0)
+predicted.class <- getClass(predicted.quality)
+sum(predicted.quality == data$quality_num)/nrow(data)
+sum(predicted.class == data$class)/nrow(data)
+```
+
+But there is an important thing to note. Our dataset is very unbalanced: 82% 
+of quality values are 5 or 6 (class regular). So if we use a dummy model that 
+always predict "regular" class, then we will achieve a success rate of 82%. If 
+we use quality numbers, there are almost 43% of quality values "5", so a success 
+rate of 58% is only a small improvement.
+
+# Multivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the investigation. Were there features that strengthened each other in terms of looking at your feature(s) of interest?
+
+Since the outcome "quality" is a little subjective, and also it is the median 
+of several evaluators, we have thought that it is better to take into account 
+only 3 categories or classes: bad wines (qualities of 4 or lower), regular wines 
+(qualities 5 or 6) and good wines (qualities of 7 and higher). It will help us 
+to see the differences regarding their features. 
+
+So we have compared our 4 main variables ("volatile.acidity", "citric.acid", 
+"sulphates" and "alcohol") in a pairwise mode, taking into accound the different 
+"classes" of wine. Here we have seen that regular wines are very spread; most 
+of the times there is not a good limit between a bad and a regular wine, or 
+between a good and a regular wine. On the other hand, bad wines and good wines 
+are more distinguishable between them.
+
+What we have seen is that most of good wines have medium values of citric acid 
+and low values of volatile acidity. Bad wines usually have medium-high volatile 
+acidity and low citric acid. This is similar for combinations of 
+“volatile.acidity” with “sulphates” or “alcohol”: good wines are upper left and 
+bad wines are lower right. This tendency is similar in “alcohol” vs 
+“citric.acid” or “sulphates”, although in this case good wines are on the upper 
+right and bad wines on the lower left. For the combination “citric.acid” vs 
+“sulphates”, we can appreciate more or less a horizontal line separating good 
+and bad wines.
+
+### Were there any interesting or surprising interactions between features?
+
+Yes, according with our previous bivariate studies, it seems that there is a 
+positive correlation between "citric.acid" and "quality". But if we observe the 
+scatter plots by class of wine (only good and bad), we do not see a clear cutoff 
+of "citric.acid" feature to distinguish good and bad wines. Then the separation 
+is guided by the other variables.
+
+### Did you create any models with your dataset? Discuss the strengths and limitations of your model.
+
+Yes, as explained before, we created 4 simple linear models using our four main 
+features. The first model includes only "alcohol" as predictor. Then next model 
+add "volatile.acidity". Model 3 adds also "sulphates", and the last model adds 
+"citric.acid". The R<sup>2</sup> values of our models are not very good, 
+although the sucess rates could be a little misleading. One of the main problems 
+is that we have a very unbalanced dataset (too many "regular" wines). Maybe the 
+biggest problem for the model is to distinguish between bad and regular wines, 
+and between good and regular wines. 
+
+------
+
+# Final Plots and Summary
+
+### Plot One
+```{r echo=FALSE, fig.width=10, fig.height=10, Plot_One}
+
+# Generate an examplo of plot to extract the legend
+legendplot <- ggplot(aes_string(x = 'fixed.acidity'), data = data) +
+      geom_density(alpha = 3/4, aes(fill = class)) +
+      xlab('Fixed acidity') +
+      ylab('Density') + theme_classic() + theme(legend.position="bottom")
+
+# Function that extract the legend from a plot
+g_legend <- function(a.gplot) {
+  tmp <- ggplot_gtable(ggplot_build(a.gplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
+  }
+
+# Extract the legend in order to put only a global legend when using 
+# grid.arrange
+legend <- g_legend(legendplot)
+
+# Function that creates a density plot for each quality class
+get_density_plot <- function(column, xlab) {
+  return(
+    ggplot(aes_string(x = column), data = data) +
+      geom_density(alpha = 3/4, aes(fill = class)) +
+      xlab(xlab) +
+      theme_classic() + 
+      theme(legend.position="none", axis.text.y = element_blank(), 
+            axis.title.y=element_blank(), axis.ticks.y = element_blank())
+  )
+}
+
+p1 <- get_density_plot('fixed.acidity', 
+                       "Fixed acidity (tartaric acid - g/dm^3)")
+p2 <- get_density_plot('volatile.acidity', 
+                       "Volatile acidity (acetic acid - g/dm^3)")
+p3 <- get_density_plot('citric.acid', "Citric acid (g/dm^3)")
+p4 <- get_density_plot('residual.sugar', "Residual sugar (g/dm^3)")
+p5 <- get_density_plot('chlorides', "Chlorides (sodium chloride - g/dm^3)")
+p6 <- get_density_plot('free.sulfur.dioxide', "Free sulfur dioxide (mg/dm^3)")
+p7 <- get_density_plot('pfree.sulfur.dioxide', "% free sulfur dioxide")
+p8 <- get_density_plot('nonfree.sulfur.dioxide', 
+                       "Bound sulfur dioxide (mg/dm^3)")
+p9 <- get_density_plot('total.sulfur.dioxide', "Total sulfur dioxide(mg/dm^3)")
+p10 <- get_density_plot('density', "Density (g/cm^3")
+p11 <- get_density_plot('pH', "pH")
+p12 <- get_density_plot('sulphates', "Sulphates (potassium sulphate - g/dm^3)")
+p13 <- get_density_plot('alcohol', "Alcohol (% by volume)")
+
+# Put all plots in a grid. The last row contains the global legend
+grid.arrange(p1, p2, p3, p4, p5, p6, p7, p9, p10, p11, p12, p13, 
+             layout_matrix = rbind(c(1,2,3),
+                                   c(4,5,6),
+                                   c(7,8,9),
+                                   c(10,11,12),
+                                   c(13,13,13)), legend, 
+             top = "Densities for features (grouped by classes)")
+```
+
+### Description One
+
+This plot shows the densities for the distributions of all features in the 
+dataset. They are grouped according to the three quality classes for wine: bad 
+(4 or lower quality values) in red, regular (5 or 6) in green and good (7 or 
+higher) in blue. Those variables with less overlapping in their density curves 
+could help us to distinguish between quality classes. Four of the best features 
+for this purpose are: volatile acidity, citric acid, sulphates and alcohol. 
+Other variables also could help us to detect a specific class, like fixed 
+acidity (good wines) and % free sulfur dioxide (regular wines).  
+
+*Note: text, values and ticks of Y-axis were removed for clarity*
+
+### Plot Two
+```{r echo=FALSE, fig.width=8, fig.height=8, Plot_Two}
+
+p1 <- ggplot(aes(x = class, y = volatile.acidity), data = data) +
+  geom_boxplot(aes(fill = class)) + theme_classic() + 
+  theme(legend.position="none", axis.title.x=element_blank(), 
+        axis.ticks.x = element_blank()) +
+  ylab("Volatile acidity (acetic acid - g / dm^3)") +
+  stat_summary(fun.y = mean, geom = 'point', shape = 1, size = 3)
+
+p2 <- ggplot(aes(x = class, y = citric.acid), data = data) +
+  geom_boxplot(aes(fill = class)) + theme_classic() + 
+  theme(legend.position="none", axis.title.x=element_blank(), 
+        axis.ticks.x = element_blank()) +
+  ylab("Citric acid (g / dm^3)") +
+  stat_summary(fun.y = mean, geom = 'point', shape = 1, size = 3)
+
+p3 <- ggplot(aes(x = class, y = sulphates), 
+             data = subset(data, sulphates < 1.5)) +
+  geom_boxplot(aes(fill = class)) + theme_classic() + 
+  theme(legend.position="none", axis.title.x=element_blank(), 
+        axis.ticks.x = element_blank()) +
+  ylab("Sulphates (potassium sulphate - g / dm3)") +
+  stat_summary(fun.y = mean, geom = 'point', shape = 1, size = 3)
+
+p4 <- ggplot(aes(x = class, y = alcohol), data = subset(data, alcohol < 14)) +
+  geom_boxplot(aes(fill = class)) + theme_classic() + 
+  theme(legend.position="none", axis.title.x=element_blank(), 
+        axis.ticks.x = element_blank()) +
+  ylab("Alcohol (% by volume)") +
+  stat_summary(fun.y = mean, geom = 'point', shape = 1, size = 3)
+
+grid.arrange(p1, p2, p3, p4, 
+             top = "Box plots for the main 4 features (grouped by classes)")
+```
+
+### Description Two
+
+In this case, we analyse the main four features (volatile acidity, citric acid, 
+sulphates and alcohol) with box plots by quality class of wines (bad, regular 
+and good) using the same schema of colours. The box plots also show the mean 
+values as a circle. For 3 of 4 features (all except volatile acidity), median 
+(and mean) values increase with quality; although in the case of alcohol, the 
+classes "bad" and "regular" are very similar, with the exception of some 
+outliers in regular class. In general, the regular class values are very spread. 
+For volatile acidity, we see a negative tendency: values of quality are higher 
+for lower values of this feature.  
+
+*Note: some outliers were removed (>= 14 for alcohol and >= 1.5 for sulphates)*
+
+### Plot Three
+```{r echo=FALSE, fig.width=8, fig.height=10, Plot_Three}
+
+# Get only good and bad wines and remove some outliers
+cleansubset <- subset(data, class %in% c('good', 'bad') & 
+                        volatile.acidity < 1.5 &
+                        citric.acid < 1 &
+                        sulphates < 2)
+
+# Create some scatter plots between all the main 4 variables and 
+# add density 2d maps
+p1 <- ggplot(aes(x = volatile.acidity, y = citric.acid),
+       data = cleansubset) +
+  geom_point(aes(color = class)) + theme_bw() +
+  stat_density2d(aes(color = class)) +
+  xlab('Volatile acidity (g/dm^3)') + 
+  ylab('Citric acid (g/dm^3)') +
+  theme(legend.position="bottom")
+
+p3 <- ggplot(aes(x = volatile.acidity, y = sulphates),
+       data = cleansubset) +
+  geom_point(aes(color = class)) + theme_bw() +
+  stat_density2d(aes(color = class)) +
+  xlab('Volatile acidity (g/dm^3)') + 
+  ylab('Sulphates (g/dm^3)') +
+  theme(legend.position="bottom")
+
+p5 <- ggplot(aes(x = volatile.acidity, y = round(alcohol)),
+       data = cleansubset) +
+  geom_jitter(aes(color = class), 
+              position = position_jitter(h = 0.3, w = 0)) +
+  stat_density2d(aes(color = class)) + theme_bw() +
+  xlab('Volatile acidity (g/dm^3)') + 
+  ylab('Alcohol (% by volume)') +
+  theme(legend.position="bottom")
+
+p2 <- ggplot(aes(x = citric.acid, y = sulphates),
+       data = cleansubset) +
+  geom_point(aes(color = class)) + theme_bw() +
+  stat_density2d(aes(color = class)) +
+  xlab('Citric acid (g/dm^3)') + 
+  ylab('Sulphates (g/dm^3)') +
+  theme(legend.position="bottom")
+
+p4 <- ggplot(aes(x = citric.acid, y = round(alcohol)),
+       data = cleansubset) +
+  geom_jitter(aes(color = class), 
+              position = position_jitter(h = 0.3, w = 0)) +
+  stat_density2d(aes(color = class)) + theme_bw() +
+  xlab('Citric acid (g/dm^3)') + ylab('Alcohol (% by volume)') +
+  theme(legend.position="bottom")
+
+p6 <- ggplot(aes(x = sulphates, y = round(alcohol)),
+       data = cleansubset) +
+  geom_jitter(aes(color = class), 
+              position = position_jitter(h = 0.3, w = 0)) +
+  stat_density2d(aes(color = class)) + theme_bw() +
+  xlab('Sulphates (g/dm^3)') + 
+  ylab('Alcohol (% by volume)') +
+  theme(legend.position="bottom")
+
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2, 
+             top = paste('Pairwise comparisson of the main 4 features,', 
+                         'with density maps (grouped by class)'))
+```
+
+### Description Three
+
+In this plot we show the pairwise comparison for the six combinations of the 
+main four features. Each combination are represented in a scatter plot. We used 
+a subset of the wines dataset selecting only wines with quality class bad or 
+good. We also deleted some outliers (volatile acidity >= 1.5, citric acid >= 1 
+and sulphates >= 2). The idea is to show that these features could help to 
+distinguish good wines from bad wines. We are omitting regular wines because 
+their features are so spread that it is not easy to make a distinction; 
+nevertheless, a person usually is not interested in detected a regular wine; 
+he/she usually wants to detect a potential good wine or to avoid a bad wine.
+
+These scatter plots also show density 2D maps for each class. This allows us to 
+see regions or clusters of good wine and bad wine. 
+
+------
+
+# Reflection
+
+We have been analysing a red wine dataset with almost 1,500 observations and 12 
+features. One of these features is the punctuation or quality for the wine. The 
+objective was to analyse the other features to know their influence in wine 
+quality. After the study of the different distributions for the features, 
+taking into account the qualities, we determined four of the features as the 
+most influential: volatile acidity, citric acid, sulphates and alcohol. After 
+grouping the qualities in three classes (bad, regular and good), we saw that 
+there was a correlation with the main features. This correlation is positive in 
+all cases, except for volatile acidity whose correlation is negative. 
+Multivariate analysis allowed us to see that combinations of the main features 
+could help to determine different "spatial" regions for good wines and bad 
+wines. We have decided that to predict regular wines does not have much sense: 
+most of people usually want to detect a potential good wine (or avoid a bad 
+wine). 
+
+According to our study, good wines seem to have lower volatile acidity, higher 
+alcohol and medium-high sulphate values. Bad wines tend to have low values for 
+citric acid; although we have seen, this feature does not improve our 
+predictive models. 
+
+Regarding these predictive models, we have been trying a simple linear model 
+with only one main feature, and then adding one by one the other 3 main 
+features. Although the R<sup>2</sup> is small, the success rates are more or 
+less high. But this is mainly because we have a problem of unbalanced data: 
+too many "regular" class observations. 
+
+In the future work, we should try to improve our modelling procedures balancing 
+the data and using cross-validation techniques to detect overfitting. Also we 
+could try some algorithm for parameters selection.  
+
+Other machine learning algorithms could work better for this problem. Decision 
+trees could be useful to detect a path of rules to determine wine quality. Also 
+classification algorithms could be used since quality is in fact an ordered 
+categorical variable. There are more powerful methods, like random forest or 
+Support Vector Machines (SVM); they could help us to get good predictors, but 
+it would be more complicated to interpret the resulting models. k-Nearest 
+Neighbours algorithm (k-NN) could work very well in this context, but it will 
+not explain anything about the underlying model.  
+  
+  
+
+
+
+
