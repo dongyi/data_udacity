@@ -235,11 +235,14 @@ grid.arrange(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12,
              ncol = 2)
 ```
 
-不同的属性下quanlity的差别提现的较为明显的有alcohol, critic acid, volatile acidity
-alcohol和critic acid和quanlity class正相关, 而volatile acidity和quanlity class负相关
+不同的属性下quanlity的差别提现的较为明显的有
+alcohol, critic acid, volatile acidity
+alcohol和critic acid和quanlity class正相关, 
+而volatile acidity和quanlity class负相关
 
 
-
+我们用2d密度图来观察一下几对变量之间的关系, 为了直观我们去掉了class=regular的数据, 只保留了good和bad的数据
+我们来观察
 
 ```{r echo=FALSE, fig.width=8, fig.height=10, Plot_Three}
 
@@ -284,6 +287,9 @@ grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2,
              top = paste('Pairwise comparisson of the main 4 features,', 
                          'with density maps (grouped by class)'))
 ```
+
+
+可以观察到有一些变量存在outlier, 总体上good和bad的class在这几对变量对比上差别较为明显
 
 
 # Multivariate Analysis
@@ -418,6 +424,8 @@ acidity (good wines) and % free sulfur dioxide (regular wines).
 ### Plot Three
 ```{r echo=FALSE, fig.width=8, fig.height=10, Plot_Three}
 
+
+
 # Get only good and bad wines and remove some outliers
 cleansubset <- subset(data, class %in% c('good', 'bad') & 
                         volatile.acidity < 1.5 &
@@ -429,51 +437,34 @@ cleansubset <- subset(data, class %in% c('good', 'bad') &
 p1 <- ggplot(aes(x = volatile.acidity, y = citric.acid),
        data = cleansubset) +
   geom_point(aes(color = class)) + theme_bw() +
-  stat_density2d(aes(color = class)) +
-  xlab('Volatile acidity (g/dm^3)') + 
-  ylab('Citric acid (g/dm^3)') +
+  stat_density2d(aes(color = class), geom = "raster", contour = FALSE) +
   theme(legend.position="bottom")
 
 p3 <- ggplot(aes(x = volatile.acidity, y = sulphates),
        data = cleansubset) +
   geom_point(aes(color = class)) + theme_bw() +
-  stat_density2d(aes(color = class)) +
-  xlab('Volatile acidity (g/dm^3)') + 
-  ylab('Sulphates (g/dm^3)') +
+  stat_density2d(aes(color = class), geom = "raster", contour = FALSE) +
   theme(legend.position="bottom")
 
 p5 <- ggplot(aes(x = volatile.acidity, y = round(alcohol)),
        data = cleansubset) +
-  geom_jitter(aes(color = class), 
-              position = position_jitter(h = 0.3, w = 0)) +
-  stat_density2d(aes(color = class)) + theme_bw() +
-  xlab('Volatile acidity (g/dm^3)') + 
-  ylab('Alcohol (% by volume)') +
+  stat_density2d(aes(color = class), geom = "raster", contour = FALSE) + theme_bw() +
   theme(legend.position="bottom")
 
 p2 <- ggplot(aes(x = citric.acid, y = sulphates),
        data = cleansubset) +
   geom_point(aes(color = class)) + theme_bw() +
-  stat_density2d(aes(color = class)) +
-  xlab('Citric acid (g/dm^3)') + 
-  ylab('Sulphates (g/dm^3)') +
+  stat_density2d(aes(color = class), geom = "raster", contour = FALSE) +
   theme(legend.position="bottom")
 
 p4 <- ggplot(aes(x = citric.acid, y = round(alcohol)),
        data = cleansubset) +
-  geom_jitter(aes(color = class), 
-              position = position_jitter(h = 0.3, w = 0)) +
-  stat_density2d(aes(color = class)) + theme_bw() +
-  xlab('Citric acid (g/dm^3)') + ylab('Alcohol (% by volume)') +
+  stat_density2d(aes(color = class), geom = "raster", contour = FALSE) + theme_bw() +
   theme(legend.position="bottom")
 
 p6 <- ggplot(aes(x = sulphates, y = round(alcohol)),
        data = cleansubset) +
-  geom_jitter(aes(color = class), 
-              position = position_jitter(h = 0.3, w = 0)) +
-  stat_density2d(aes(color = class)) + theme_bw() +
-  xlab('Sulphates (g/dm^3)') + 
-  ylab('Alcohol (% by volume)') +
+  stat_density2d(aes(color = class), geom = "raster", contour = FALSE) + theme_bw() +
   theme(legend.position="bottom")
 
 grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2, 

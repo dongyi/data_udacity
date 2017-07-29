@@ -19,6 +19,6 @@ http://stackoverflow.com/questions/14726078/changing-title-in-multiplot-ggplot2-
 http://stats.stackexchange.com/questions/30788/whats-a-good-way-to-use-r-to-make-a-scatterplot-that-separates-the-data-by-trea
 
 
+- R语言数据可视化之数据分布图（直方图、密度曲线、箱线图、等高线、2D密度图）
 
-
-
+http://www.cnblogs.com/muchen/p/5430536.html
