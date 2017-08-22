@@ -306,22 +306,11 @@ grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2,
 根据之前的变量之间的关系研究, 发现citric.acid 和quality之间有正相关性. 但是如果我们观察散点图, citric.acid在good和bad级别下并没有明显的界限. 
 
 
-### Did you create any models with your dataset? Discuss the strengths and limitations of your model.
-
-Yes, as explained before, we created 4 simple linear models using our four main 
-features. The first model includes only "alcohol" as predictor. Then next model 
-add "volatile.acidity". Model 3 adds also "sulphates", and the last model adds 
-"citric.acid". The R<sup>2</sup> values of our models are not very good, 
-although the sucess rates could be a little misleading. One of the main problems 
-is that we have a very unbalanced dataset (too many "regular" wines). Maybe the 
-biggest problem for the model is to distinguish between bad and regular wines, 
-and between good and regular wines. 
-
 ------
 
-# Final Plots and Summary
+# 最终图形和说明
 
-### Plot One
+### 图1 
 ```{r echo=FALSE, fig.width=10, fig.height=10, Plot_One}
 
 # Generate an examplo of plot to extract the legend
@@ -381,23 +370,17 @@ grid.arrange(p1, p2, p3, p4, p5, p6, p7, p9, p10, p11, p12, p13,
              top = "Densities for features (grouped by classes)")
 ```
 
-### Description One
+### 图1分析
 
-This plot shows the densities for the distributions of all features in the 
-dataset. They are grouped according to the three quality classes for wine: bad 
-(4 or lower quality values) in red, regular (5 or 6) in green and good (7 or 
-higher) in blue. Those variables with less overlapping in their density curves 
-could help us to distinguish between quality classes. Four of the best features 
-for this purpose are: volatile acidity, citric acid, sulphates and alcohol. 
-Other variables also could help us to detect a specific class, like fixed 
-acidity (good wines) and % free sulfur dioxide (regular wines).  
-
-*Note: text, values and ticks of Y-axis were removed for clarity*
-
-### Plot Two
+这张图展示了数据集的每个特征的密度图, 把等级分为了三类: bad, regular, good. 使我们在不同的等级之间较为清晰的观察
+观察到几个最佳的属性:volatile acidity/citric acid/sulphates/alcohol
+其他属性, 比如fixed acidity, free sulfur dioxide 也有明显的分辨等级的特征
 
 
-### Description Two
+### 图2
+
+
+### 图2 说明
 
 
 ### Plot Three
@@ -451,20 +434,10 @@ grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2,
                          'with density maps (grouped by class)'))
 ```
 
-### Description Three
+### 图3说明
+在这张图里我们用散点图的方法用6对变量两两比较, 并且去掉了regular级别的数据, 让观察结果更加明显.
+并且去掉了一些outlier. 这样更好的区分了bad和good级别的红酒在不同属性之间的差别.
 
-In this plot we show the pairwise comparison for the six combinations of the 
-main four features. Each combination are represented in a scatter plot. We used 
-a subset of the wines dataset selecting only wines with quality class bad or 
-good. We also deleted some outliers (volatile acidity >= 1.5, citric acid >= 1 
-and sulphates >= 2). The idea is to show that these features could help to 
-distinguish good wines from bad wines. We are omitting regular wines because 
-their features are so spread that it is not easy to make a distinction; 
-nevertheless, a person usually is not interested in detected a regular wine; 
-he/she usually wants to detect a potential good wine or to avoid a bad wine.
-
-These scatter plots also show density 2D maps for each class. This allows us to 
-see regions or clusters of good wine and bad wine. 
 
 ------
 
