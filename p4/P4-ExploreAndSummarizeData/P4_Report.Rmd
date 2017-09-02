@@ -313,32 +313,15 @@ grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2,
 ### 图1 
 ```{r echo=FALSE, fig.width=10, fig.height=10, Plot_One}
 
-# Generate an examplo of plot to extract the legend
-legendplot <- ggplot(aes_string(x = 'fixed.acidity'), data = data) +
-      geom_density(alpha = 3/4, aes(fill = class)) +
-      xlab('Fixed acidity') +
-      ylab('Density') + theme_classic() + theme(legend.position="bottom")
 
-# Function that extract the legend from a plot
-g_legend <- function(a.gplot) {
-  tmp <- ggplot_gtable(ggplot_build(a.gplot))
-  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
-  legend <- tmp$grobs[[leg]]
-  return(legend)
-  }
-
-# Extract the legend in order to put only a global legend when using 
-# grid.arrange
-legend <- g_legend(legendplot)
-
-# Function that creates a density plot for each quality class
+# 给每个变量画密度图
 get_density_plot <- function(column, xlab) {
   return(
     ggplot(aes_string(x = column), data = data) +
       geom_density(alpha = 3/4, aes(fill = class)) +
       xlab(xlab) +
       theme_classic() + 
-      theme(legend.position="none", axis.text.y = element_blank(), 
+      theme(axis.text.y = element_blank(), 
             axis.title.y=element_blank(), axis.ticks.y = element_blank())
   )
 }
@@ -360,14 +343,11 @@ p11 <- get_density_plot('pH', "pH")
 p12 <- get_density_plot('sulphates', "Sulphates (potassium sulphate - g/dm^3)")
 p13 <- get_density_plot('alcohol', "Alcohol (% by volume)")
 
-# Put all plots in a grid. The last row contains the global legend
-grid.arrange(p1, p2, p3, p4, p5, p6, p7, p9, p10, p11, p12, p13, 
-             layout_matrix = rbind(c(1,2,3),
-                                   c(4,5,6),
-                                   c(7,8,9),
-                                   c(10,11,12),
-                                   c(13,13,13)), legend, 
-             top = "Densities for features (grouped by classes)")
+# 所有图整合到一起
+
+grid.arrange(p1, p2, p3, p4, p5, p6, p7, p9, p10, p11, p12, p13,
+             ncol = 3)
+
 ```
 
 ### 图1分析
@@ -388,14 +368,13 @@ grid.arrange(p1, p2, p3, p4, p5, p6, p7, p9, p10, p11, p12, p13,
 
 
 
-# Get only good and bad wines and remove some outliers
+# 保留good和bad, 并且去掉一些outlier
 cleansubset <- subset(data, class %in% c('good', 'bad') & 
                         volatile.acidity < 1.5 &
                         citric.acid < 1 &
                         sulphates < 2)
 
-# Create some scatter plots between all the main 4 variables and 
-# add density 2d maps
+# 4个主要变量两两之间的关系画散点图, 加上2d密度图
 p1 <- ggplot(aes(x = volatile.acidity, y = citric.acid),
        data = cleansubset) +
   geom_point(aes(color = class)) + theme_bw() +
@@ -441,48 +420,20 @@ grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2,
 
 ------
 
-# Reflection
 
-We have been analysing a red wine dataset with almost 1,500 observations and 12 
-features. One of these features is the punctuation or quality for the wine. The 
-objective was to analyse the other features to know their influence in wine 
-quality. After the study of the different distributions for the features, 
-taking into account the qualities, we determined four of the features as the 
-most influential: volatile acidity, citric acid, sulphates and alcohol. After 
-grouping the qualities in three classes (bad, regular and good), we saw that 
-there was a correlation with the main features. This correlation is positive in 
-all cases, except for volatile acidity whose correlation is negative. 
-Multivariate analysis allowed us to see that combinations of the main features 
-could help to determine different "spatial" regions for good wines and bad 
-wines. We have decided that to predict regular wines does not have much sense: 
-most of people usually want to detect a potential good wine (or avoid a bad 
-wine). 
 
-According to our study, good wines seem to have lower volatile acidity, higher 
-alcohol and medium-high sulphate values. Bad wines tend to have low values for 
-citric acid; although we have seen, this feature does not improve our 
-predictive models. 
+我们分析了红酒数据集, 有1599个记录, 12个属性. 我们分析了各种属性对红酒品质的影响
+确定了4个变量: 
+volatile acidity, citric acid, sulphates, alcohol
+讲品质分为三类:
+bad, regular, good
+我们发现volatile acidity和品质具有正相关, 其他三个变量和品质负相关
 
-Regarding these predictive models, we have been trying a simple linear model 
-with only one main feature, and then adding one by one the other 3 main 
-features. Although the R<sup>2</sup> is small, the success rates are more or 
-less high. But this is mainly because we have a problem of unbalanced data: 
-too many "regular" class observations. 
+我们又用了多变量分析观察到不同的变量关系对红酒品质的影响
+为了方便观察我们只考虑了bad和good, 因为多数情况下regular品质的红酒对我们的趋势研究没什么贡献
+通过研究, good品质的红酒具有较低的volatile acidity, 较高的alcohol, bad品质的红酒
 
-In the future work, we should try to improve our modelling procedures balancing 
-the data and using cross-validation techniques to detect overfitting. Also we 
-could try some algorithm for parameters selection.  
-
-Other machine learning algorithms could work better for this problem. Decision 
-trees could be useful to detect a path of rules to determine wine quality. Also 
-classification algorithms could be used since quality is in fact an ordered 
-categorical variable. There are more powerful methods, like random forest or 
-Support Vector Machines (SVM); they could help us to get good predictors, but 
-it would be more complicated to interpret the resulting models. k-Nearest 
-Neighbours algorithm (k-NN) could work very well in this context, but it will 
-not explain anything about the underlying model.  
-  
-  
+在未来的研究中, 我们可以用机器学习方法研究这个问题, 由于这个案例的数据集较小, 可以通过朴素贝叶斯方法对数据集分类, 随着数据集增大, 通过决策树/随即森林的方法能更好的对数据分类. 如果有更好的计算条件, 还可以使用支持向量机.
 
 
 
