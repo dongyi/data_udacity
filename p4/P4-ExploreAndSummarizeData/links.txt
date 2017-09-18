@@ -1,0 +1,14 @@
+- R语言数据可视化之数据分布图（直方图、密度曲线、箱线图、等高线、2D密度图）
+
+http://www.cnblogs.com/muchen/p/5430536.html
+
+- R语言基础：因子和有序因子
+
+http://blog.sina.com.cn/s/blog_59f8748e01011in6.html
+
+- 机器学习 清华大学出版社 周志华 著
+
+- R语言数据混搭 （翻译）（6）
+
+https://site.douban.com/182577/widget/notes/10567225/note/250443292/
+ 

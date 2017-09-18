@@ -8,6 +8,8 @@ output:
     toc: yes
 ---
 
+
+
 ```{r packages}
 
 library(ggplot2)
@@ -18,6 +20,9 @@ library(dplyr)
 library(knitr)
 library(memisc)
 
+knitr::opts_chunk$set(message=FALSE, warning = FALSE, echo=FALSE)
+
+
 # 全局配置
 set.seed(1984) 
 
@@ -25,6 +30,7 @@ opts_chunk$set(fig.width=6, fig.height=6, fig.align='center',
                warning=FALSE, message=FALSE, echo=FALSE,
                cache=TRUE, echo=FALSE)
 ```
+
 
 # 数据集说明
 
@@ -41,7 +47,7 @@ str(data)
 names(data)[1] <- 'id'
 ```
 
-总体情况:
+## 总体情况:
 
 ```{r summary}
 summary(data)
@@ -52,7 +58,7 @@ summary(data)
 
 
 
-我们先总览一下各个属性之间的pearson相关度
+### 我们先总览一下各个属性之间的pearson相关度
 
 ```{r fig.width=10, fig.height=10, pearson}
 pairs.panels(data, pch=".")
@@ -65,8 +71,9 @@ fixed.acidity - density               0.67
 fixed.acidity - pH                   -0.68
 
 
+# 单变量观察
 
-首先观察一下quality值的分布
+### 首先观察一下quality值的分布
 
 
 ```{r single variable}
@@ -90,7 +97,7 @@ data$quality <- factor(data$quality)
 
 
 
-查看其它变量的分布
+## 查看其它变量的分布
 ```{r single vars}
 get_basic_histogram("fixed.acidity", data)
 get_basic_histogram("volatile.acidity", data, 0.1)
@@ -108,17 +115,18 @@ get_basic_histogram("alcohol", data)
 
 多数直方图都是右偏态分布
 
+### volatile acidity分布
 volatile acidity多数集中在0.2到0.7之间, 使用cut来查看一下可以发现集中在其中4个区间里
 
-```{r single vars, fig.width=8}
+```{r single vars 2, fig.width=8}
 qplot(cut(data$volatile.acidity,
       breaks = seq(0.0, 1.6, 0.1)))
 ```
 
-
+### citric acid分布
 再来查看一下citric acid值, 似乎有较为明显的outlier, 我们使用箱型图来查看一下
 
-```{r single vars}
+```{r single vars 3}
 ggplot(aes(x = 'citric acid', y = citric.acid), data = data) + geom_boxplot() +
   scale_y_continuous(breaks = seq(0, 1, 0.2))
 ```
@@ -128,7 +136,7 @@ ggplot(aes(x = 'citric acid', y = citric.acid), data = data) + geom_boxplot() +
 free sulfur dioxide 是个明显的右偏分布, 我们使用对数坐标和根号坐标观察
 
 
-```{r single vars}
+```{r single vars 4}
 get_basic_histogram("free.sulfur.dioxide", data, 0.2) +
   scale_x_log10(breaks = seq(1, 75, 5))
 
@@ -138,10 +146,12 @@ get_basic_histogram("free.sulfur.dioxide", data, 0.2) +
 
 可以看出在对数坐标下呈现正态分布, 并且有6, 11, 15, 18 这几个常见的值
 
+
+### percent.free.sulfur.dioxide分布
   
 我们现在查看一下free sulfur dioxide在total sulfur dioxide的占比情况, 定义一个新的变量
 
-```{r single vars}
+```{r single vars 5}
 data$percent.free.sulfur.dioxide = data$free.sulfur.dioxide / data$total.sulfur.dioxide
 
 ggplot(aes(x = percent.free.sulfur.dioxide), data = data) +
@@ -153,29 +163,30 @@ ggplot(aes(x = percent.free.sulfur.dioxide), data = data) +
 
 再观察一下alcohol值
 
-```{r single var}
+```{r single vars 6}
 qplot(cut(data$alcohol, breaks = seq(7.0, 15.0, 0.5)))
 ```
 
 可以发现多数值分布在9.0以上部分均匀递减
 
 
+### residual.sugar分布
 再观察一下residual.sugar值的分布
 
-```{r single vars}
+```{r single vars 7}
 #qplot(cut(data$residual.sugar, breaks = seq(7.0, 15.0, 0.5)))
 qplot(cut(data$residual.sugar, breaks = seq(0.5, 15.0, 1)))
 
-ggplot(aes(x = 'residual.sugar', y = residual.sugar), data = data)
-   + geom_boxplot()
-   + scale_y_continuous(breaks = seq(0.5, 15.0, 2))
+ggplot(aes(x = 'residual.sugar', y = residual.sugar), data = data)  + geom_boxplot() +
+  scale_y_continuous(breaks = seq(0.5, 15, 2))
 ```
 可以看出多数的residual.sugar集中在2.5左右, 较高的值呈现长尾分布
 
 
+### density分布
 再来观察一下density值
 
-```{r single vars}
+```{r single vars 8}
 qplot(cut(data$density, breaks = seq(0.98, 1.008, 0.002)))
 
 
@@ -184,7 +195,34 @@ qplot(cut(data$density, breaks = seq(0.98, 1.008, 0.002)))
 可以看出基本呈现正态分布, 从0.99到1.004之间, 均值和中位数大约是0.997左右
 
 
+# 单变量分析
 
+### 数据集的结构是怎样的?
+
+这个数据集是一个由13个变量的1599条数据组成的. 所有的条目都是数字型的, quality变量只有6个取值: 3,4,5,6,7,8
+
+### 数据集的主要特征是什么?
+
+由于最终结果是quality的不同, volatile.acidity, citric.acid, sulphates, alcohol的分布可能反应了quality的趋势
+
+### 数据集中还有什么特征可以支持主要特征
+
+sulfur dioxide对最终结果也有一定的影响
+
+### 有没有从原有变量建立新的变量?
+
+我们把quality转变成了factor类型
+根据free.sulfur.dioxide建立了pfree.sulfur.dioxide表示free.sulfur.dioxide所占的百分比
+根据quality划分了三个类别: quality为3,4的: bad, quality是5,6的:regular, quality是7,8的: good
+
+### 在您调查的功能中，有不寻常的分布？您是否对数据执行任何操作以整理，调整或更改数据的形式？如果是这样，你为什么这么做？
+
+有一些数据有比较明显的outlier, 比如citric acid, 常见的值在0.09到0.42之间, 有一个outlier取值为1, 我们把这种情况排除掉 了.
+
+
+
+
+# 双变量研究
 
 现在再将quality值和其他变量结合起来综合研究. 我们将quality的值分为三组:
 差: quality <= 4
@@ -193,7 +231,7 @@ qplot(cut(data$density, breaks = seq(0.98, 1.008, 0.002)))
 
 我们将这个新等级变量加入数据集的字段
 
-```{r fig.width=10, fig.height=10, Univariate_Plots10}
+```{r fig.width=10, fig.height=10}
 
 classify <- function(q) {
   q <- factor(q)
@@ -210,7 +248,6 @@ data$class <- classify(data$quality)
 ```
 
 ```{r fig.width=10, fig.height=10}
-# 我们再画出每个属性在不同class下的密度图
 
 var_density_plot <- function(column) {
   return(
@@ -243,7 +280,6 @@ alcohol和critic acid和 class正相关,
 而volatile acidity和 class负相关
 
 
-
 根据之前两两变量之间perason相关系数的观察, 我们针对四个明显的变量用箱型图观察:
 volatile.acidity, citric.acid, sulphates, alcohol
 
@@ -264,6 +300,31 @@ ggplot(aes(x = class, y = round(alcohol)), data = data) +
 
 ```
 
+
+# 双变量分析
+
+
+### 谈谈你在这部分调查中观察到的一些变量间的关系。这些特征与数据集中其他的特征有何不同？
+
+基于之前的分析, 我们观察了一些相关性, 不同变量之间的箱型图可以找到一些变量的趋势:
+volatile.acidity, citric.acid, sulphates, alcohol. 除了volatile.acidity是和quality负相关,其他都是正相关的
+
+我们用pearson相关度矩阵进一步的观察了所有变量之间的相关度
+
+
+
+### 你是否从其他特征里观察到了一些有意思的关联(除去主要特征)？
+
+根据相关度矩阵, 还有一些较高相关度的变量. 比如fixed.acidity和density, citric.acid和ph
+
+
+
+### 你发现最强的关联变量是什么？
+
+最强的关联度是total.sulfur.dioxide和nonfree.sulfur.dioxide, 但是这两个变量本身有自相关性, 没有什么参考意义
+
+
+# 多变量研究
 
 我们用2d密度图来观察一下几对变量之间的关系, 为了直观我们去掉了class=regular的数据, 只保留了good和bad的数据
 我们来观察
@@ -315,7 +376,9 @@ grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2,
 可以观察到有一些变量存在outlier, 总体上good和bad的class在这几对变量对比上差别较为明显
 
 
-# 变量分析
+### 多变量分析
+
+### 谈谈你在这部分调查中观察到的一些关系。他们是否相互加强？
 
 因为"quality"的取值较为主观, 我们引入了"class"作为评估葡萄酒好坏的标准, 只有good(>7), regular(5, 6), bad(<5)三种取值, 便于观察
 
@@ -324,7 +387,7 @@ grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2,
 我们发现, 多数good级别的葡萄酒有中等的citric acid和低的volatile acidity. bad级别的葡萄酒通常有较高的volatile acidity和较低的citric acid. 同样的,good级别的葡萄酒有更高的sulphates, 更高的alcohol
 
 
-### 有趣的发现?
+### 有什么趣的发现?
 
 根据之前的变量之间的关系研究, 发现citric.acid 和quality之间有正相关性.
 但是如果我们观察散点图, citric.acid在good和bad级别下并没有明显的界限.
@@ -414,7 +477,7 @@ grid.arrange(p1, p2, p3, p4,
 
 ```
 
-### 图2 说明
+### 图2 分析
 
 我们分析了pearson相关度比较显著的4个变量:
 volatile acidity, citric acid, sulphates, alcohol
@@ -480,6 +543,7 @@ grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2,
 ------
 
 
+# 总结与展望
 
 我们分析了红酒数据集, 有1599个记录, 12个属性. 我们分析了各种属性对红酒品质的影响
 确定了4个变量: 
