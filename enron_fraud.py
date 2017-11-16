@@ -2,26 +2,26 @@
 
 import sys
 import pickle
+
 sys.path.append("../tools/")
 
 from feature_format import featureFormat, targetFeatureSplit
 from tester import dump_classifier_and_data
 
-
 ### Task 1: Select what features you'll use.
 ### features_list is a list of strings, each of which is a feature name.
 ### The first feature must be "poi".
-features_list = ['poi', 'total_stock_value', 'from_this_person_to_poi', 'total_payments', 
-'to_messages', 'bonus', 'from_poi_to_this_person', 'long_term_incentive', 'deferred_income', 
-'restricted_stock_deferred', 'deferral_payments', 'expenses', 'director_fees', 'loan_advances', 
-'salary', 'other', 'restricted_stock', 'shared_receipt_with_poi', 'from_messages', 'exercised_stock_options']
+features_list = ['poi', 'total_stock_value', 'from_this_person_to_poi', 'total_payments',
+                 'to_messages', 'bonus', 'from_poi_to_this_person', 'long_term_incentive', 'deferred_income',
+                 'restricted_stock_deferred', 'deferral_payments', 'expenses', 'director_fees', 'loan_advances',
+                 'salary', 'other', 'restricted_stock', 'shared_receipt_with_poi', 'from_messages',
+                 'exercised_stock_options']
 
 ### Load the Dictionary Containing the Dataset
-all_features = list(data_dict.values())[0].keys()
 
-with open("final_project_dataset.pkl", "r") as data_file:
+with open("final_project_dataset.pkl", "rb") as data_file:
     data_dict = pickle.load(data_file)
-
+all_features = list(data_dict.values())[0].keys()
 
 ### Task 2: Remove outliers
 
@@ -29,7 +29,6 @@ with open("final_project_dataset.pkl", "r") as data_file:
 del data_dict['TOTAL']
 import pandas as pd
 import numpy as np
-
 
 pl = []
 for k, v in data_dict.items():
@@ -41,19 +40,17 @@ df = pd.DataFrame(pl)
 # look into data:
 print(df.describe().T)
 
-
-
 ### remove NAN's from dataset, show top 5 salary
 top_salary = df[df['salary'] != 'NaN'].sort_values('salary', ascending=False)['name'][:5]
 
 for name in top_salary:
     del data_dict[name]
 
-
-    
 ### plot features
-import seaborn
 data = featureFormat(data_dict, ["salary", "bonus"])
+
+"""
+import seaborn
 
 for point in data:
     plt.scatter( point[0], point[1] )
@@ -61,12 +58,11 @@ for point in data:
 plt.xlabel("salary")
 plt.ylabel("bonus")
 plt.show()
-
-
-
+"""
 
 ### Task 3: Create new feature(s)
 ### Store to my_dataset for easy export below.
+
 
 ### new features: fraction_to_poi_email,fraction_from_poi_email
 df.loc[df['from_poi_to_this_person'] == 'NaN', 'from_poi_to_this_person'] = 0.0
@@ -80,14 +76,21 @@ df['fraction_to_poi_email'] = df['from_this_person_to_poi'] / df['from_messages'
 name_to_fraction_from_poi_email = zip(df['name'], df['fraction_from_poi_email'])
 name_to_fraction_to_poi_email = zip(df['name'], df['fraction_to_poi_email'])
 
-data_dict.update(dict(name_to_fraction_from_poi_email))
-data_dict.update(dict(name_to_fraction_to_poi_email))
+for k, v in dict(name_to_fraction_from_poi_email).items():
+    if k not in data_dict:
+        continue
+    data_dict[k]['name_to_fraction_from_poi_email'] = v
+for k, v in dict(name_to_fraction_to_poi_email).items():
+    if k not in data_dict:
+        continue
+    data_dict[k]['name_to_fraction_to_poi_email'] = v
 
 my_dataset = data_dict
 
+features_list = ["salary", "bonus"]
 
 ### Extract features and labels from dataset for local testing
-data = featureFormat(my_dataset, features_list, sort_keys = True)
+data = featureFormat(my_dataset, features_list, sort_keys=True)
 labels, features = targetFeatureSplit(data)
 
 ### Task 4: Try a varity of classifiers
@@ -100,19 +103,22 @@ labels, features = targetFeatureSplit(data)
 
 # Provided to give you a starting point. Try a variety of classifiers.
 from sklearn.naive_bayes import GaussianNB
+
 clf = GaussianNB()
 
-
 from sklearn import cross_validation
-features_train, features_test, labels_train, labels_test = cross_validation.train_test_split(features, labels, test_size=0.1, random_state=42)
+
+features_train, features_test, labels_train, labels_test = cross_validation.train_test_split(features, labels,
+                                                                                             test_size=0.1,
+                                                                                             random_state=42)
 
 from sklearn.cross_validation import KFold
 
 for train_indices, test_indices in KFold(len(labels), 3):
-    features_train= [features[ii] for ii in train_indices]
-    features_test= [features[ii] for ii in test_indices]
-    labels_train=[labels[ii] for ii in train_indices]
-    labels_test=[labels[ii] for ii in test_indices]
+    features_train = [features[ii] for ii in train_indices]
+    features_test = [features[ii] for ii in test_indices]
+    labels_train = [labels[ii] for ii in train_indices]
+    labels_test = [labels[ii] for ii in test_indices]
 
 from sklearn.tree import DecisionTreeClassifier
 import time
@@ -126,20 +132,19 @@ print('accuracy before tuning ', score)
 
 print('consume time(Decision tree):', round(time.time() - t0, 3), 's')
 
-
 importances = clf.feature_importances_
 indices = np.argsort(importances)[::-1]
 
 ### try Naive Bayes for prediction
-#t0 = time.time()
+# t0 = time.time()
 
-#clf = GaussianNB()
-#clf.fit(features_train, labels_train)
-#pred = clf.predict(features_test)
-#accuracy = accuracy_score(pred,labels_test)
-#print(accuracy)
+# clf = GaussianNB()
+# clf.fit(features_train, labels_train)
+# pred = clf.predict(features_test)
+# accuracy = accuracy_score(pred,labels_test)
+# print(accuracy)
 
-#print("consume time (naive bayes):", round(time.time() - t0, 3), "s")
+# print("consume time (naive bayes):", round(time.time() - t0, 3), "s")
 
 
 
@@ -152,6 +157,7 @@ indices = np.argsort(importances)[::-1]
 
 # Example starting point. Try investigating other evaluation techniques!
 from sklearn.cross_validation import train_test_split
+
 features_train, features_test, labels_train, labels_test = \
     train_test_split(features, labels, test_size=0.3, random_state=42)
 
