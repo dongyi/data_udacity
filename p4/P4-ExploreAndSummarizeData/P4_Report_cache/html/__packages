@@ -1,0 +1,9 @@
+base
+ggplot2
+gridExtra
+psych
+dplyr
+knitr
+lattice
+MASS
+memisc
