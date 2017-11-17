@@ -9,6 +9,11 @@ output:
 ---
 
 
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(message=FALSE, warning = FALSE, echo=FALSE)
+
+```
+
 
 ```{r packages}
 
@@ -20,7 +25,6 @@ library(dplyr)
 library(knitr)
 library(memisc)
 
-knitr::opts_chunk$set(message=FALSE, warning = FALSE, echo=FALSE)
 
 
 # 全局配置
@@ -98,30 +102,78 @@ data$quality <- factor(data$quality)
 
 
 ## 查看其它变量的分布
-```{r single vars}
+```{r single vars fixed.acidity}
 get_basic_histogram("fixed.acidity", data)
+```
+fixed.acidity呈现右偏态分布
+
+```{r single vars volatile.acidity}
 get_basic_histogram("volatile.acidity", data, 0.1)
+```
+volatile.acidity呈现右偏态分布
+
+```{r single vars citric.acid}
 get_basic_histogram("citric.acid", data)
+```
+citric.acid呈现右偏态分布
+
+```{r single vars residual.sugar}
 get_basic_histogram("residual.sugar", data)
+```
+residual.sugar呈现右偏态分布
+
+```{r single vars chlorides}
 get_basic_histogram("chlorides", data)
+```
+chlorides呈现右偏态分布
+
+```{r single vars free.sulfur.dioxide}
 get_basic_histogram("free.sulfur.dioxide", data)
+```
+free.sulfur.dioxide呈现右偏态分布
+
+```{r single vars total.sulfur.dioxide}
 get_basic_histogram("total.sulfur.dioxide", data)
+```
+total.sulfur.dioxide呈现右偏态分布
+
+```{r single vars density}
 get_basic_histogram("density", data)
+```
+density呈现正态分布
+
+```{r single vars pH}
 get_basic_histogram("pH", data)
+```
+pH呈现正态分布
+
+
+```{r single vars sulphates}
 get_basic_histogram("sulphates", data)
+```
+sulphates呈现右偏态分布
+
+
+```{r single vars alcohol}
 get_basic_histogram("alcohol", data)
 
 ```
+alcohol呈现右偏态分布
+
+
 
 多数直方图都是右偏态分布
 
 ### volatile acidity分布
-volatile acidity多数集中在0.2到0.7之间, 使用cut来查看一下可以发现集中在其中4个区间里
 
 ```{r single vars 2, fig.width=8}
 qplot(cut(data$volatile.acidity,
       breaks = seq(0.0, 1.6, 0.1)))
 ```
+
+volatile acidity多数集中在0.2到0.7之间, 基本呈现右偏态分布.
+主要值集中在其中4个区间里 (0.3, 0.4], (0.4, 0.5], (0.5, 0.6], (0.6, 0.7]
+
 
 ### citric acid分布
 再来查看一下citric acid值, 似乎有较为明显的outlier, 我们使用箱型图来查看一下
@@ -252,7 +304,8 @@ data$class <- classify(data$quality)
 var_density_plot <- function(column) {
   return(
     ggplot(aes_string(x = column), data = data) +
-      geom_density(alpha = 0.3, aes(fill = class))
+      geom_density(alpha = 0.3, aes(fill = class)) + 
+      scale_fill_brewer(palette = "Blues")
   )
 }
 
@@ -299,6 +352,9 @@ ggplot(aes(x = class, y = round(alcohol)), data = data) +
   geom_boxplot()
 
 ```
+
+可以看出, quality越高的样本具有越高的citric.acid, 越高的sulphates
+quality为good的样本有较高的alcohol, 但是bad和regular的alcohol区别不明显
 
 
 # 双变量分析
@@ -372,8 +428,9 @@ grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2,
                          '根据品质区分'))
 ```
 
-
+在这些对比中, 我们用散点图让样本在x, y轴上对应不同的属性, 观察样本的分布情况
 可以观察到有一些变量存在outlier, 总体上good和bad的class在这几对变量对比上差别较为明显
+可以看出good品质的样本具有较明显的更高的citric.acid, alcohol, sulphates 
 
 
 ### 多变量分析
@@ -398,7 +455,7 @@ grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2,
 # 最终图形和说明
 
 ### 图1 
-```{r fig.width=10, fig.height=10, p1}
+```{r fig.width=10, fig.height=4, p1}
 
 
 # 给每个变量画密度图
@@ -408,87 +465,48 @@ draw_density_plot <- function(column) {
       geom_density(alpha = 3/4, aes(fill = class)) +
       xlab(column) +
       theme_classic() + 
+      scale_fill_brewer(palette = "Blues") + 
       theme(axis.text.y = element_blank(), 
             axis.title.y=element_blank(), axis.ticks.y = element_blank())
   )
 }
 
-p1 <- draw_density_plot('fixed.acidity')
-p2 <- draw_density_plot('volatile.acidity')
-p3 <- draw_density_plot('citric.acid')
-p4 <- draw_density_plot('residual.sugar')
-p5 <- draw_density_plot('chlorides')
-p6 <- draw_density_plot('free.sulfur.dioxide')
-p7 <- draw_density_plot('percent.free.sulfur.dioxide')
-p8 <- draw_density_plot('nonfree.sulfur.dioxide')
-p9 <- draw_density_plot('total.sulfur.dioxide')
-p10 <- draw_density_plot('density')
-p11 <- draw_density_plot('pH')
-p12 <- draw_density_plot('sulphates')
-p13 <- draw_density_plot('alcohol')
+ draw_density_plot('volatile.acidity')
 
-# 所有图整合到一起
-
-grid.arrange(p1, p2, p3,
-             p4, p5, p6,
-             p7, p9, p10,
-             p11, p12, p13,
-             ncol = 3)
 
 ```
 
 ### 图1分析
 
 这张图展示了数据集的每个特征的密度图, 把等级分为了三类: bad, regular, good. 使我们在不同的等级之间较为清晰的观察
-观察到几个最佳的属性:volatile acidity/citric acid/sulphates/alcohol
-其他属性, 比如fixed acidity, free sulfur dioxide 也有明显的分辨等级的特征
-
+越高的class具有越低的volatile.acidity
 
 ### 图2
-```{r fig.width=10, fig.height=10, p2}
+```{r fig.width=5, fig.height=5, p2}
 
-p1 <- ggplot(aes(x = class, y = volatile.acidity), data = data) +
-  geom_boxplot(aes(fill = class)) + theme_classic() + 
-  theme(legend.position="none", axis.title.x=element_blank(), 
-        axis.ticks.x = element_blank()) +
-  stat_summary(fun.y = mean, geom = 'point', shape = 1, size = 3)
-
-p2 <- ggplot(aes(x = class, y = citric.acid), data = data) +
-  geom_boxplot(aes(fill = class)) + theme_classic() + 
-  theme(legend.position="none", axis.title.x=element_blank(), 
-        axis.ticks.x = element_blank()) +
-  stat_summary(fun.y = mean, geom = 'point', shape = 1, size = 3)
-
-p3 <- ggplot(aes(x = class, y = sulphates), 
+ ggplot(aes(x = class, y = sulphates), 
              data = subset(data, sulphates < 1.5)) +
   geom_boxplot(aes(fill = class)) + theme_classic() + 
   theme(legend.position="none", axis.title.x=element_blank(), 
         axis.ticks.x = element_blank()) +
   stat_summary(fun.y = mean, geom = 'point', shape = 1, size = 3)
 
-p4 <- ggplot(aes(x = class, y = alcohol), data = subset(data, alcohol < 14)) +
-  geom_boxplot(aes(fill = class)) + theme_classic() + 
-  theme(legend.position="none", axis.title.x=element_blank(), 
-        axis.ticks.x = element_blank()) +
-  stat_summary(fun.y = mean, geom = 'point', shape = 1, size = 3)
 
-grid.arrange(p1, p2, p3, p4, 
-             top = "4变量箱型图")
 
 ```
 
 ### 图2 分析
 
 我们分析了pearson相关度比较显著的4个变量:
-volatile acidity, citric acid, sulphates, alcohol
+volatile acidity, citric acid, sulphates
 使用箱型图观察, 去掉了一些outlier, 根据三种品质: bad, regular, good 使用了不同的颜色, 标注了变量的均值.
-观察结果比较明显的呈现出volatile acidity和品质负相关, 其他三个变量都是正相关
+观察结果比较明显的呈现出sulphates和品质正相关
 
 
 
 
 ### 图3
-```{r fig.width=8, fig.height=10, p3}
+```{r fig.width=5, fig.height=5, p3}
 
 # 保留good和bad, 并且去掉一些outlier
 cleansubset <- subset(data, class %in% c('good', 'bad') & 
@@ -497,48 +515,21 @@ cleansubset <- subset(data, class %in% c('good', 'bad') &
                         sulphates < 2)
 
 # 4个主要变量两两之间的关系画散点图, 加上2d密度图
-p1 <- ggplot(aes(x = volatile.acidity, y = citric.acid),
+
+ggplot(aes(x = sulphates, y = citric.acid),
        data = cleansubset) +
-  geom_point(aes(color = class)) +
-  stat_density2d(aes(color = class), geom = "raster", contour = FALSE) +
+  geom_point(aes(color = class)) + theme_bw() +
+  geom_smooth(aes(color = class), method="lm", size=0.8, se=F) + 
+  #stat_density2d(aes(color = class)) +
   theme(legend.position="bottom")
 
-p3 <- ggplot(aes(x = volatile.acidity, y = sulphates),
-       data = cleansubset) +
-  geom_point(aes(color = class))  +
-  stat_density2d(aes(color = class), geom = "raster", contour = FALSE) +
-  theme(legend.position="bottom")
 
-p5 <- ggplot(aes(x = volatile.acidity, y = round(alcohol)),
-       data = cleansubset) +
-  stat_density2d(aes(color = class), geom = "raster", contour = FALSE) +
-  theme(legend.position="bottom")
-
-p2 <- ggplot(aes(x = citric.acid, y = sulphates),
-       data = cleansubset) +
-  geom_point(aes(color = class)) +
-  stat_density2d(aes(color = class), geom = "raster", contour = FALSE) +
-  theme(legend.position="bottom")
-
-p4 <- ggplot(aes(x = citric.acid, y = round(alcohol)),
-       data = cleansubset) +
-  stat_density2d(aes(color = class), geom = "raster", contour = FALSE) +
-  theme(legend.position="bottom")
-
-p6 <- ggplot(aes(x = sulphates, y = round(alcohol)),
-       data = cleansubset) +
-  stat_density2d(aes(color = class), geom = "raster", contour = FALSE) +
-  theme(legend.position="bottom")
-
-grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2, 
-             top = paste('4变量之间的关系密度图',
-                         '根据品质区分'))
 ```
 
 ### 图3说明
 在这张图里我们用散点图的方法用6对变量两两比较, 并且去掉了regular级别的数据, 让观察结果更加明显.
 并且去掉了一些outlier. 这样更好的区分了bad和good级别的红酒在不同属性之间的差别.
-
+可以看出good和bad的样本在citric.acid/sulphates下具有明显的趋势
 
 ------
 
