@@ -12,17 +12,17 @@ from tester import dump_classifier_and_data
 ### Task 1: Select what features you'll use.
 ### features_list is a list of strings, each of which is a feature name.
 ### The first feature must be "poi".
-features_list = ['poi', 'total_stock_value', 'from_this_person_to_poi', 'total_payments',
-                 'to_messages', 'bonus', 'from_poi_to_this_person', 'long_term_incentive', 'deferred_income',
-                 'restricted_stock_deferred', 'deferral_payments', 'expenses', 'director_fees', 'loan_advances',
-                 'salary', 'other', 'restricted_stock', 'shared_receipt_with_poi', 'from_messages',
-                 'exercised_stock_options']
+
 
 ### Load the Dictionary Containing the Dataset
 
 with open("final_project_dataset.pkl", "rb") as data_file:
     data_dict = pickle.load(data_file)
+    
 all_features = [i for i in list(ss.values())[0].keys() if i not in ['email_address']]
+
+# poi should be first
+features_list = ['poi'] + [i for i in all_features if i != 'poi']
 
 ### Task 2: Remove outliers
 
