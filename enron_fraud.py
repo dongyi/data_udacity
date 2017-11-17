@@ -22,7 +22,7 @@ features_list = ['poi', 'total_stock_value', 'from_this_person_to_poi', 'total_p
 
 with open("final_project_dataset.pkl", "rb") as data_file:
     data_dict = pickle.load(data_file)
-all_features = list(data_dict.values())[0].keys()
+all_features = [i for i in list(ss.values())[0].keys() if i not in ['email_address']]
 
 ### Task 2: Remove outliers
 
