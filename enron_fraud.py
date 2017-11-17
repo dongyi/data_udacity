@@ -146,8 +146,14 @@ indices = np.argsort(importances)[::-1]
 # print(accuracy)
 
 # print("consume time (naive bayes):", round(time.time() - t0, 3), "s")
+from sklearn import grid_search
 
+svc_clf = SVC()
+parameters = {'kernel': ['rbf', 'linear', 'sigmoid']}
 
+clf = grid_search.GridSearchCV(svc_clf, parameters)
+clf = clf.fit(features_train, labels_train)
+clf = clf.best_estimator_
 
 ### Task 5: Tune your classifier to achieve better than .3 precision and recall 
 ### using our testing script. Check the tester.py script in the final project
