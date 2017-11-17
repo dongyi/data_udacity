@@ -19,7 +19,7 @@ from tester import dump_classifier_and_data
 with open("final_project_dataset.pkl", "rb") as data_file:
     data_dict = pickle.load(data_file)
     
-all_features = [i for i in list(ss.values())[0].keys() if i not in ['email_address']]
+all_features = [i for i in list(ss.values())[0].keys() if i not in ['email_address', 'other']]
 
 # poi should be first
 features_list = ['poi'] + [i for i in all_features if i != 'poi']
@@ -113,13 +113,6 @@ features_train, features_test, labels_train, labels_test = cross_validation.trai
                                                                                              test_size=0.1,
                                                                                              random_state=42)
 
-from sklearn.cross_validation import KFold
-
-for train_indices, test_indices in KFold(len(labels), 3):
-    features_train = [features[ii] for ii in train_indices]
-    features_test = [features[ii] for ii in test_indices]
-    labels_train = [labels[ii] for ii in train_indices]
-    labels_test = [labels[ii] for ii in test_indices]
 
 from sklearn.tree import DecisionTreeClassifier
 import time
@@ -137,23 +130,35 @@ importances = clf.feature_importances_
 indices = np.argsort(importances)[::-1]
 
 ### try Naive Bayes for prediction
-# t0 = time.time()
+t0 = time.time()
 
-# clf = GaussianNB()
-# clf.fit(features_train, labels_train)
-# pred = clf.predict(features_test)
-# accuracy = accuracy_score(pred,labels_test)
-# print(accuracy)
+clf = GaussianNB()
+clf.fit(features_train, labels_train)
+pred = clf.predict(features_test)
+accuracy = accuracy_score(pred,labels_test)
+print(accuracy)
+
+
+# bernoulliNB
+from sklearn.naive_bayes import BernoulliNB
+clf = BernoulliNB()
+clf.fit(features_train, labels_train)
+pred = clf.predict(features_test)
+accuracy = accuracy_score(pred,labels_test)
+print(accuracy)
+
+
 
 # print("consume time (naive bayes):", round(time.time() - t0, 3), "s")
 from sklearn import grid_search
 
-svc_clf = SVC()
-parameters = {'kernel': ['rbf', 'linear', 'sigmoid']}
+# too slow 
+#svc_clf = SVC()
+#parameters = {'kernel': ['rbf', 'linear', 'sigmoid']}
 
-clf = grid_search.GridSearchCV(svc_clf, parameters)
-clf = clf.fit(features_train, labels_train)
-clf = clf.best_estimator_
+#clf = grid_search.GridSearchCV(svc_clf, parameters)
+#clf = clf.fit(features_train, labels_train)
+#clf = clf.best_estimator_
 
 ### Task 5: Tune your classifier to achieve better than .3 precision and recall 
 ### using our testing script. Check the tester.py script in the final project
