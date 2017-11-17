@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import sys
+import time
 import pickle
 
 sys.path.append("../tools/")
@@ -103,6 +104,7 @@ labels, features = targetFeatureSplit(data)
 
 # Provided to give you a starting point. Try a variety of classifiers.
 from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import accuracy_score
 
 clf = GaussianNB()
 
