@@ -48,7 +48,7 @@ for name in top_salary:
     del data_dict[name]
 
 ### plot features
-data = featureFormat(data_dict, ["salary", "bonus"])
+data = featureFormat(data_dict, features_list)
 
 """
 import seaborn
@@ -88,7 +88,6 @@ for k, v in dict(name_to_fraction_to_poi_email).items():
 
 my_dataset = data_dict
 
-features_list = ["salary", "bonus"]
 
 ### Extract features and labels from dataset for local testing
 data = featureFormat(my_dataset, features_list, sort_keys=True)
