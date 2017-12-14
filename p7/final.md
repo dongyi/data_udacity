@@ -2,7 +2,7 @@ A/B 测试最终项目
 =========================
 
 
-变量选择
+度量选择
 -------------
 
 * cookie数量: 不变度量。
@@ -26,4 +26,19 @@ A/B 测试最终项目
 * 净转化率 是一个评估度量。 
   净转化率是前面两个（总转化率和留存率）计算出来的，因此这也是一个很好的度量
 
+
+
+测量可变性
+---------------------
+
+* 计算标准差 基准表
+|                   | Value  | 
+| ----------------------------- |:--------:| 
+| Unique cookies to view page per day       | 40000   | 
+| Unique cookies to click "Start free trial" per day            | 3200   |  
+| Enrollments per day                        | 660   |
+| Click-through-probability on "Start free trial"               | 0.08   |
+| Probability of enrolling, given click           | 0.20625   |
+| Probability of payment, given enroll          | 0.53   |
+| Probability of payment, given click           | 0.1093125    |
 
