@@ -119,6 +119,8 @@ A/B 测试最终项目
 
 #### 同理对于评估度量，计算结果如下
 
+##### 总转化率
+
     clicks_controlled = 17293.
     enroll_controlled = 3785.
     clicks_experiment = 17260.
@@ -132,23 +134,41 @@ A/B 测试最终项目
     lower = d - se_pooled = -0.0291
     upper = d - se_pooled = -0.0120
 
+ 结果未覆盖0值，因此有统计显著性，也不包括0.01和-0.01（实际显著性边界），因此也有实践显著性
+
+##### 净转化率
+
+    clicks_controlled = 17293.
+    pay_controlled = 2033.
+    enroll_experiment = 17260.
+    pay_experiment = 1945.
+
+    p_pooled = (pay_controlled + pay_experiment) / (clicks_controlled + enroll_experiment) = 0.1151
+    se_pooled = sqrt(p_pooled * (1-p_pooled) * (1./clicks_controlled + 1./N_exp)) = 0.00343
+
+    d = pay_experiment / enroll_experiment - pay_controlled / clicks_controlled = -0.0048
+
+    lower = d - se_pooled = -0.0116
+    upper = d + se_pooled = 0.0019
+
+区间覆盖0值，因此不具有统计显著性和实践显著性
+
+
 ### 符号检验
-对于每个评估度量，使用每日细分数据执行符号检验。若符号检验的结果与差异的置信区间
-不符，看你能否找出原因。
+
+使用 [在线计算器](http://graphpad.com/quickcalcs/binomial1.cfm) 计算. 根据之前的计算结果
+
+| 度量                    | p值 | 统计显著性 |
+| ----------------------------- |:--------:| :-----------: | :-------: | :----------: |
+| 总转化率           |  0.0026   | 是 |
+| 净转化率           |  0.6776   | 否 | 
 
 
 
 
 ### 建议
-最后提供建议。你会启动/不启动这个试验吗？还是会进行更深入的探究，运行后续试验，
-或者还是应由自己主观去判断？如果你要进行更深入地探究，解释你会调查的领域。如果你
-要运行后续试验，简要描述这个试验。如果应由自己主观决定，解释有哪些与决定相关的因
-素。
+
 
 
 ### 后续试验：如何减少提前终止
-如果你想减少受挫并想要提前终止课程的学生数量，你会尝试什么试验？简要描述你会做出
-的改变，你对变化影响的假设是什么，你想要测量什么度量，你想要使用什么转移单位。对
-每个选择提供解释。
-优达学城
-2016 年 9 月
+
