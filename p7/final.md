@@ -106,7 +106,7 @@ A/B 测试最终项目
 
 ### 合理性检查
 
-#### 对每个不变度量, 计算标准差`std = sqrt(0.5 * 0.5 / (N_1 + N_2))`
+ 对每个不变度量, 计算标准差`std = sqrt(0.5 * 0.5 / (N_1 + N_2))`
  上下界是 `0.5 - 1.96*std` `0.5 + 1.96*std`  不使用 Bonferroni 校正
 
 
@@ -117,11 +117,26 @@ A/B 测试最终项目
 | 点击率   |0.0821258| 0.0821824| 0.000468 | 0.0812   | 0.0830   | 0.0822 | Yes |
 
 
-### Result Analysis
+#### 同理对于评估度量，计算结果如下
+
+    clicks_controlled = 17293.
+    enroll_controlled = 3785.
+    clicks_experiment = 17260.
+    enroll_experiment = 3423.
+
+    p_pooled = (clicks_experiment + enroll_experiment) / (clicks_controlled + enroll_controlled) = 0.2086
+    se_pooled = math.sqrt(p_pooled * (1-p_pooled) * (1/clicks_controlled + 1/clicks_experiment)) = 0.00437
+
+    d = enroll_experiment / clicks_experiment - enroll_controlled / clicks_controlled = -0.02055
+
+    lower = d - se_pooled = -0.0291
+    upper = d - se_pooled = -0.0120
 
 ### 符号检验
 对于每个评估度量，使用每日细分数据执行符号检验。若符号检验的结果与差异的置信区间
 不符，看你能否找出原因。
+
+
 
 
 ### 建议
