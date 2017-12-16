@@ -41,7 +41,7 @@ df = pd.DataFrame(pl)
 print(df.describe().T)
 
 ### remove NAN's from dataset, show top 5 salary
-top_salary = df[df['salary'] != 'NaN'].sort_values('salary', ascending=False)['name'][:3]
+top_salary = df[df['salary'] != 'NaN'].sort_values('salary', ascending=False)['name'][:5]
 
 for name in top_salary:
     del data_dict[name]
@@ -60,6 +60,17 @@ plt.show()
 
 ### Task 3: Create new feature(s)
 ### Store to my_dataset for easy export below.
+
+from sklearn import preprocessing
+min_max_scaler = preprocessing.MinMaxScaler()
+standerize_scaler=  preprocessing.StandardScaler()
+
+#import warnings
+#warnings.filterwarnings('ignore')
+
+for to_scale in  ['total_payments', 'total_stock_value', 'salary', 'bonus', 'director_fees']:
+    df.loc[df[to_scale] == 'NaN', to_scale] = 0.0
+    df[to_scale] = standerize_scaler.fit_transform(df[to_scale].values)
 
 
 ### new features: fraction_to_poi_email,fraction_from_poi_email
@@ -83,7 +94,19 @@ for k, v in dict(name_to_fraction_to_poi_email).items():
         continue
     data_dict[k]['fraction_to_poi_email'] = v
 
+    
+
+for to_scale in  ['total_payments', 'total_stock_value', 'salary', 'bonus', 'director_fees']:
+    nts = zip(df['name'], df[to_scale])
+    for k, v in dict(nts).items():
+        if k not in data_dict:
+            continue
+        data_dict[k][to_scale] = v
+    
+    
 my_dataset = data_dict
+features_list = ['poi', 'fraction_from_poi_email', 'fraction_to_poi_email', 'total_payments', 
+                 'total_stock_value', 'salary', 'bonus', 'director_fees']
 
 
 ### Extract features and labels from dataset for local testing
